@@ -1,8 +1,8 @@
 # Thrive Renovation Budget Calculator
 
-A React + Vite budget calculator for extensions, loft conversions, and whole-house refurbishments, built for Thrive Property Education. Deployed as a static site to GitHub Pages.
+A React + Vite budget calculator for extensions, loft conversions, and whole-house refurbishments, built for Thrive Property Education.
 
-Live: https://ronacon.github.io/thrive-budget-calculator/
+Live: https://thrivepropertyeducation.co.uk/calculator/ (served from the [thrivepropertyeducation](https://github.com/ronacon/thrivepropertyeducation) repo — see Deployment below)
 
 ## Stack
 
@@ -27,11 +27,11 @@ npm run preview # serve the production build locally
 
 ## Deployment
 
-Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds the app and publishes `dist/` to GitHub Pages via GitHub Actions.
+This app is no longer deployed standalone. After `npm run build`, copy the contents of `dist/` into the `calculator/` folder of the [thrivepropertyeducation](https://github.com/ronacon/thrivepropertyeducation) repo and commit there — it's served at `thrivepropertyeducation.co.uk/calculator/` alongside the rest of the marketing site.
 
-In the repo's **Settings → Pages**, set the source to **GitHub Actions** (one-time setup).
+The Vite `base` path in `vite.config.js` is set to `/calculator/` to match that URL.
 
-The Vite `base` path in `vite.config.js` is set to `/thrive-budget-calculator/` to match the GitHub Pages project URL. If this repo is ever renamed, or a custom domain is added, update `base` accordingly (`base: '/'` for a custom domain).
+`.github/workflows/deploy.yml` (standalone GitHub Pages deploy to `ronacon.github.io/thrive-budget-calculator/`) is kept for manual runs only (`workflow_dispatch`) and is not the canonical deployment anymore.
 
 ## Kajabi embed
 

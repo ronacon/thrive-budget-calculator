@@ -1,8 +1,9 @@
 name: Deploy to GitHub Pages
 
+# Standalone deploy disabled: the calculator is now built and copied into
+# thrivepropertyeducation/calculator, served at thrivepropertyeducation.co.uk/calculator.
+# Kept for manual runs only.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

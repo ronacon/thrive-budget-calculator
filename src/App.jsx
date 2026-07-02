@@ -1,37 +1,25 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Home, Building, Wrench, Plus, Trash2, ChevronDown, ChevronUp, Calculator, AlertCircle, Info, Check, Sparkles, ArrowRight, RotateCcw, Download, Layers } from "lucide-react";
+import logoImg from "./assets/tpe-logo.png";
 
 // ============ BRAND ============
+// Matches the palette actually used on thrivepropertyeducation.co.uk
 const C = {
-  green: '#263e3a',
+  green: '#263e3a',    // --dark (hero/section backgrounds)
+  navBg: '#1a2e2a',    // --nav-bg (header/footer bars specifically)
+  dark2: '#1d3330',    // --dark2
   gold: '#d4af37',
-  sage: '#4e7e73',
-  mint: '#b9e4da',
-  cream: '#faf7f0',
+  goldHover: '#e0bc3e',
+  sage: '#4e7e73',      // --mid
+  mint: '#edf8f5',      // --mint-pale (very light tint, used for subtle panel backgrounds)
+  cream: '#f9f7f2',
+  ink: '#2a2a2a',
+  muted: '#6b6b6b',
 };
 
 // ============ LOGO ============
-const LogoMark = ({ size = 36 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
-    <rect x="4" y="10" width="86" height="13" fill={C.gold} />
-    <rect x="4" y="28" width="62" height="13" fill={C.gold} />
-    <rect x="4" y="59" width="62" height="13" fill={C.gold} />
-    <rect x="4" y="77" width="86" height="13" fill={C.gold} />
-  </svg>
-);
-
-// NOTE: the source design used a large embedded base64 raster logo here.
-// That's been swapped for this lightweight, code-built mark (bars + wordmark)
-// to avoid shipping a huge inline data URI. Drop a real logo file into
-// src/assets/ and swap this component out whenever the brand asset is ready.
-const LogoFull = ({ light = false }) => (
-  <div className="flex items-center" style={{ gap: '1px' }}>
-    <LogoMark size={38} />
-    <div className="leading-none">
-      <div style={{ color: C.gold, fontSize: '28px', letterSpacing: '0.02em', fontFamily: 'Impact, "Haettenschweiler", "Arial Narrow Bold", "Helvetica Inserat", sans-serif', fontWeight: 900, lineHeight: '0.95' }}>THRIVE</div>
-      <div style={{ color: light ? '#fff' : C.green, fontSize: '8px', letterSpacing: '0.24em', fontWeight: 600, marginTop: '3px', fontFamily: '"Helvetica Neue", Arial, sans-serif' }}>PROPERTY EDUCATION</div>
-    </div>
-  </div>
+const LogoFull = ({ height = 44 }) => (
+  <img src={logoImg} alt="Thrive Property Education" style={{ height: `${height}px`, width: 'auto', display: 'block', objectFit: 'contain' }} />
 );
 
 // ============ PRICING (from The Renovation Roadmap, 2026) ============
@@ -403,9 +391,9 @@ export default function App() {
       `}</style>
 
       {/* HEADER */}
-      <header className="no-print sticky top-0 z-20 shadow-md" style={{ backgroundColor: C.green }}>
+      <header className="no-print sticky top-0 z-20 shadow-md" style={{ backgroundColor: C.navBg }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <LogoFull light />
+          <LogoFull />
           <button onClick={resetAll} className="p-2 rounded-lg hover:bg-white/10 transition" title="Reset">
             <RotateCcw size={18} color={C.gold} />
           </button>
@@ -670,9 +658,9 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <footer className="no-print py-6 mt-4" style={{ backgroundColor: C.green }}>
+      <footer className="no-print py-6 mt-4" style={{ backgroundColor: C.navBg }}>
         <div className="max-w-3xl mx-auto px-4 flex flex-col items-center gap-2">
-          <LogoFull light />
+          <LogoFull />
           <p className="text-[10px] mt-2 text-center" style={{ color: C.mint }}>
             © Thrive Property Education - Based on <em>The Renovation Roadmap</em> by Simon Bawden
           </p>
@@ -680,7 +668,7 @@ export default function App() {
       </footer>
 
       {/* STICKY BOTTOM TOTAL (mobile) */}
-      <div className="no-print fixed bottom-0 left-0 right-0 shadow-2xl z-10 sm:hidden" style={{ backgroundColor: C.green, borderTop: `3px solid ${C.gold}` }}>
+      <div className="no-print fixed bottom-0 left-0 right-0 shadow-2xl z-10 sm:hidden" style={{ backgroundColor: C.navBg, borderTop: `3px solid ${C.gold}` }}>
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>Working budget</div>

@@ -338,6 +338,82 @@ export default function App() {
     setRefurbBoiler(false); setRefurbRewirePoints(0); setRefurbWindows(0); setRefurbDoorsExt(0);
   };
 
+  // Results stay hidden behind an email capture until the Kajabi gate form
+  // below is submitted - see the SUMMARY section for the blurred/overlay UI.
+  const [resultsUnlocked, setResultsUnlocked] = useState(false);
+
+  // Kajabi's embed script renders via document.write, which is a no-op once
+  // the host document has finished loading (as it has by the time this effect
+  // runs in a React SPA). Loading it inside a freshly-opened iframe document
+  // keeps document.write working, then the iframe is resized to fit its content.
+  const kajabiFormRef = useRef(null);
+  useEffect(() => {
+    const container = kajabiFormRef.current;
+    if (!container) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '100%';
+    iframe.style.border = 'none';
+    iframe.style.display = 'block';
+    container.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    doc.open();
+    // Style tag rides along in the same write call so it lands right after the
+    // Kajabi form markup and overrides the default (off-brand) Kajabi styling.
+    doc.write(`
+      <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+      <script src="https://thrivepropertyeducation.mykajabi.com/forms/2149632374/embed.js"></script>
+      <style>
+        body { margin: 0; font-family: 'DM Sans', sans-serif; }
+        .kajabi-form__title, .kajabi-form__subtitle { display: none; }
+        fieldset { border: none !important; padding: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important; gap: 10px !important; }
+        .kajabi-form__form-item { margin: 0 !important; }
+        .kajabi-form__form-item input {
+          width: 100% !important; box-sizing: border-box !important;
+          background: white !important; border: 2px solid #e5e7eb !important;
+          color: ${C.green} !important; font-family: 'DM Sans', sans-serif !important;
+          font-size: 14px !important; padding: 12px 14px !important; border-radius: 8px !important;
+          outline: none !important; box-shadow: none !important; height: auto !important;
+        }
+        .kajabi-form__form-item input:focus { border-color: ${C.sage} !important; }
+        .kajabi-form__btn {
+          width: 100% !important; margin-top: 2px !important;
+          background: ${C.gold} !important; color: ${C.green} !important;
+          font-family: 'Oswald', sans-serif !important; font-size: 13px !important; font-weight: 700 !important;
+          letter-spacing: 1.5px !important; text-transform: uppercase !important;
+          padding: 13px 24px !important; border: none !important; border-radius: 8px !important;
+          cursor: pointer !important; transition: background 0.2s !important;
+        }
+        .kajabi-form__btn:hover { background: ${C.goldHover} !important; }
+      </style>
+    `);
+    doc.close();
+    let renamedButton = false;
+    const resize = () => {
+      if (doc.body) iframe.style.height = `${doc.body.scrollHeight}px`;
+      // Kajabi's own button label ("Subscribe") is set in the Kajabi dashboard
+      // and reads oddly on a results gate - retarget the text only, once the
+      // form has actually rendered (it lands a beat after doc.close() returns).
+      // The underlying submit behaviour/tagging in Kajabi is untouched.
+      if (!renamedButton) {
+        const btn = doc.querySelector('.kajabi-form__btn');
+        if (btn) { btn.textContent = 'Get My Budget'; renamedButton = true; }
+      }
+    };
+    const resizeTimer = setInterval(resize, 300);
+    const stopResizing = setTimeout(() => clearInterval(resizeTimer), 5000);
+    // The form's required email field blocks the browser's native 'submit'
+    // event from firing until it passes validation, so seeing it fire is a
+    // reliable signal the visitor entered something email-shaped - unlock
+    // straight away rather than trying to parse Kajabi's own AJAX response.
+    const handleSubmit = () => setTimeout(() => setResultsUnlocked(true), 400);
+    doc.addEventListener('submit', handleSubmit, true);
+    return () => {
+      clearInterval(resizeTimer);
+      clearTimeout(stopResizing);
+      doc.removeEventListener('submit', handleSubmit, true);
+    };
+  }, []);
+
   const printRef = useRef(null);
 
   const handleDownloadPdf = () => {
@@ -405,15 +481,6 @@ export default function App() {
       </header>
 
       <main className="no-print max-w-3xl mx-auto px-3 sm:px-4 py-4 space-y-4">
-        {/* KAJABI EMBED PLACEHOLDER - replace the contents of this section with the
-            Kajabi form embed script when available. It sits above the calculator
-            tool and does not gate access to it. */}
-        <section id="kajabi-embed-placeholder" className="rounded-2xl border-2 border-dashed p-5 text-center"
-          style={{ borderColor: C.sage, backgroundColor: 'white', color: C.sage }}>
-          <p className="text-xs font-bold uppercase tracking-wider mb-1">Kajabi form placeholder</p>
-          <p className="text-xs leading-relaxed">Replace this section with the Kajabi embed script. The calculator below remains fully usable either way.</p>
-        </section>
-
         {/* PROJECT TYPE */}
         <section className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
@@ -559,70 +626,84 @@ export default function App() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-xl p-4 mb-3">
-            <div className="text-xs uppercase tracking-wider mb-1" style={{ color: C.mint }}>Build subtotal</div>
-            <div className="text-2xl sm:text-3xl font-black text-white">{fmt(subtotal)}</div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-white/5 rounded-xl p-3">
-              <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>+ Contingency 15%</div>
-              <div className="text-sm font-bold text-white">{fmt(contingency15)}</div>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3">
-              <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>+ VAT estimate (20%)</div>
-              <div className="text-sm font-bold text-white">{fmt(vat)}</div>
-            </div>
-          </div>
-
-          <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: C.gold }}>
-            <div className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: C.green }}>Working budget (recommended)</div>
-            <div className="text-2xl sm:text-3xl font-black" style={{ color: C.green }}>{fmt(totalIncVat)}</div>
-            <div className="text-[11px] mt-1 font-medium" style={{ color: C.green }}>Subtotal + 15% contingency + VAT</div>
-          </div>
-
-          <button onClick={() => setShowBreakdown(!showBreakdown)}
-            className="w-full p-3 rounded-xl bg-white/10 text-white text-sm font-semibold flex items-center justify-between">
-            <span>See detailed breakdown</span>
-            {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {showBreakdown && (
-            <div className="mt-3 bg-white rounded-xl p-3 space-y-1">
-              {active.breakdown.map((item, i) => (
-                item.isSection ? (
-                  <div key={i} className="pt-3 pb-1 text-xs font-black uppercase tracking-wider" style={{ color: C.sage }}>{item.label}</div>
-                ) : (
-                  <div key={i} className="py-1.5 border-b last:border-0" style={{ borderColor: '#f0f0f0' }}>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-semibold" style={{ color: C.green }}>{item.label}</span>
-                      <span className="font-semibold" style={{ color: C.green }}>{fmt(item.value)}</span>
-                    </div>
-                    {item.subItems && item.subItems.length > 0 && (
-                      <div className="mt-1 ml-3 space-y-0.5">
-                        {item.subItems.map((sub, j) => (
-                          <div key={j} className="flex justify-between text-xs">
-                            <span style={{ color: C.sage }}>- {sub.label}</span>
-                            <span style={{ color: C.sage }}>{fmt(sub.value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              ))}
-              <div className="flex justify-between text-sm pt-3 font-bold" style={{ color: C.green }}>
-                <span>Subtotal</span>
-                <span>{fmt(subtotal)}</span>
+          <div className="relative">
+            <div className={resultsUnlocked ? '' : 'blur-sm pointer-events-none select-none'} aria-hidden={!resultsUnlocked}>
+              <div className="bg-white/5 rounded-xl p-4 mb-3">
+                <div className="text-xs uppercase tracking-wider mb-1" style={{ color: C.mint }}>Build subtotal</div>
+                <div className="text-2xl sm:text-3xl font-black text-white">{fmt(subtotal)}</div>
               </div>
-            </div>
-          )}
 
-          <button onClick={handleDownloadPdf}
-            className="w-full mt-3 p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition"
-            style={{ backgroundColor: C.gold, color: C.green }}>
-            <Download size={16} /> Download summary (open & print to PDF)
-          </button>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-white/5 rounded-xl p-3">
+                  <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>+ Contingency 15%</div>
+                  <div className="text-sm font-bold text-white">{fmt(contingency15)}</div>
+                </div>
+                <div className="bg-white/5 rounded-xl p-3">
+                  <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>+ VAT estimate (20%)</div>
+                  <div className="text-sm font-bold text-white">{fmt(vat)}</div>
+                </div>
+              </div>
+
+              <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: C.gold }}>
+                <div className="text-xs uppercase tracking-wider font-bold mb-1" style={{ color: C.green }}>Working budget (recommended)</div>
+                <div className="text-2xl sm:text-3xl font-black" style={{ color: C.green }}>{fmt(totalIncVat)}</div>
+                <div className="text-[11px] mt-1 font-medium" style={{ color: C.green }}>Subtotal + 15% contingency + VAT</div>
+              </div>
+
+              <button onClick={() => setShowBreakdown(!showBreakdown)}
+                className="w-full p-3 rounded-xl bg-white/10 text-white text-sm font-semibold flex items-center justify-between">
+                <span>See detailed breakdown</span>
+                {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+
+              {showBreakdown && (
+                <div className="mt-3 bg-white rounded-xl p-3 space-y-1">
+                  {active.breakdown.map((item, i) => (
+                    item.isSection ? (
+                      <div key={i} className="pt-3 pb-1 text-xs font-black uppercase tracking-wider" style={{ color: C.sage }}>{item.label}</div>
+                    ) : (
+                      <div key={i} className="py-1.5 border-b last:border-0" style={{ borderColor: '#f0f0f0' }}>
+                        <div className="flex justify-between text-sm">
+                          <span className="font-semibold" style={{ color: C.green }}>{item.label}</span>
+                          <span className="font-semibold" style={{ color: C.green }}>{fmt(item.value)}</span>
+                        </div>
+                        {item.subItems && item.subItems.length > 0 && (
+                          <div className="mt-1 ml-3 space-y-0.5">
+                            {item.subItems.map((sub, j) => (
+                              <div key={j} className="flex justify-between text-xs">
+                                <span style={{ color: C.sage }}>- {sub.label}</span>
+                                <span style={{ color: C.sage }}>{fmt(sub.value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ))}
+                  <div className="flex justify-between text-sm pt-3 font-bold" style={{ color: C.green }}>
+                    <span>Subtotal</span>
+                    <span>{fmt(subtotal)}</span>
+                  </div>
+                </div>
+              )}
+
+              <button onClick={handleDownloadPdf}
+                className="w-full mt-3 p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition"
+                style={{ backgroundColor: C.gold, color: C.green }}>
+                <Download size={16} /> Download summary (open & print to PDF)
+              </button>
+            </div>
+
+            {!resultsUnlocked && (
+              <div className="absolute inset-0 flex items-center justify-center p-2">
+                <div className="bg-white rounded-2xl p-4 w-full max-w-sm text-center shadow-lg">
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: C.green }}>Your budget is ready</p>
+                  <p className="text-xs mb-3 leading-relaxed" style={{ color: C.sage }}>Enter your email to reveal your working budget and full cost breakdown.</p>
+                  <div ref={kajabiFormRef} />
+                </div>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* SIMON'S NOTE */}
@@ -672,11 +753,15 @@ export default function App() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <div className="text-[10px] uppercase tracking-wider" style={{ color: C.mint }}>Working budget</div>
-            <div className="text-xl font-black" style={{ color: C.gold }}>{fmt(totalIncVat)}</div>
+            {resultsUnlocked ? (
+              <div className="text-xl font-black" style={{ color: C.gold }}>{fmt(totalIncVat)}</div>
+            ) : (
+              <div className="text-xl font-black blur-sm select-none" style={{ color: C.gold }}>{fmt(totalIncVat)}</div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-[10px]" style={{ color: C.mint }}>{QUALITY_LABELS[quality].label} finish</div>
-            <div className="text-[10px]" style={{ color: C.mint }}>inc. 15% contingency + VAT</div>
+            <div className="text-[10px]" style={{ color: C.mint }}>{resultsUnlocked ? 'inc. 15% contingency + VAT' : 'Enter email to reveal'}</div>
           </div>
         </div>
       </div>
